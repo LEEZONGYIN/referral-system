@@ -1,0 +1,4 @@
+server:
+  addr: ":8080"
+mysql:
+  dsn: "root@tcp(127.0.0.1:3306)/referral_system?parseTime=true&charset=utf8mb4&loc=Local"
