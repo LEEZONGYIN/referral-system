@@ -170,7 +170,7 @@ func seedTestService(t *testing.T) (*ReferralService, *testStore, *model.User) {
 		ID:           1,
 		RuleCode:     "DEFAULT_REGISTER_REWARD",
 		RewardAmount: 100,
-		TriggerEvent:  model.ReferralEventRegistered,
+		TriggerEvent: model.ReferralEventRegistered,
 		Status:       1,
 		CreatedAt:    now,
 		UpdatedAt:    now,
@@ -180,11 +180,11 @@ func seedTestService(t *testing.T) (*ReferralService, *testStore, *model.User) {
 		TxMgr:                fakeTxMgr{},
 		UserRepo:             &fakeUserRepo{store: store},
 		ReferralRuleRepo:     &fakeRuleRepo{store: store},
-		ReferralRelationRepo:  &fakeRelationRepo{store: store},
-		ReferralEventRepo:     &fakeEventRepo{store: store},
-		CreditAccountRepo:     &fakeCreditAccountRepo{store: store},
-		CreditLedgerRepo:      &fakeCreditLedgerRepo{store: store},
-		StatsRepo:             nil,
+		ReferralRelationRepo: &fakeRelationRepo{store: store},
+		ReferralEventRepo:    &fakeEventRepo{store: store},
+		CreditAccountRepo:    &fakeCreditAccountRepo{store: store},
+		CreditLedgerRepo:     &fakeCreditLedgerRepo{store: store},
+		StatsRepo:            nil,
 	})
 
 	return svc, store, inviter
@@ -537,12 +537,7 @@ func (r *fakeCreditAccountRepo) CreateIfNotExists(ctx context.Context, userID in
 	if _, ok := r.store.accounts[userID]; ok {
 		return nil
 	}
-	r.store.accounts[userID] = &model.CreditAccount{
-		UserID:        userID,
-		Balance:       0,
-		FrozenBalance: 0,
-		Version:       0,
-	}
+	r.store.accounts[userID] = &model.CreditAccount{UserID: userID, Balance: 0, FrozenBalance: 0, Version: 0}
 	return nil
 }
 
@@ -663,12 +658,7 @@ func (r *fakeCreditLedgerRepo) ListByUserID(ctx context.Context, userID int64, l
 func TestReferralService_NormalFlow(t *testing.T) {
 	svc, store, inviter := seedTestService(t)
 
-	invitee := &model.User{
-		Name:  "Bob",
-		Email: strPtr("bob@example.com"),
-		Phone: strPtr("13800000002"),
-	}
-
+	invitee := &model.User{Name: "Bob", Email: strPtr("bob@example.com"), Phone: strPtr("13800000002")}
 	relation, err := svc.RegisterWithReferral(context.Background(), invitee, inviter.ReferralCode, "register-bob-001")
 	if err != nil {
 		t.Fatalf("register failed: %v", err)
@@ -686,46 +676,31 @@ func TestReferralService_NormalFlow(t *testing.T) {
 		t.Fatal("expected rule id to be set")
 	}
 
-	bizID := fmt.Sprintf("reward-%d-%d", relation.ID, 100)
-	if err := svc.RewardReferral(context.Background(), relation.ID, bizID, 100, "reward-1"); err != nil {
-		t.Fatalf("reward failed: %v", err)
-	}
-
 	store.mu.Lock()
-	defer store.mu.Unlock()
-
-	account := store.accounts[inviter.ID]
-	if account == nil {
-		t.Fatal("expected credit account")
-	}
-	if account.Balance != 100 {
-		t.Fatalf("unexpected balance: %d", account.Balance)
-	}
 	if len(store.ledgers) != 1 {
-		t.Fatalf("expected 1 ledger, got %d", len(store.ledgers))
+		store.mu.Unlock()
+		t.Fatalf("expected 1 ledger after auto reward, got %d", len(store.ledgers))
 	}
 	if len(store.events) != 2 {
-		t.Fatalf("expected 2 events, got %d", len(store.events))
+		store.mu.Unlock()
+		t.Fatalf("expected 2 events after auto reward, got %d", len(store.events))
+	}
+	account := store.accounts[inviter.ID]
+	store.mu.Unlock()
+	if account == nil || account.Balance != 100 {
+		t.Fatalf("expected inviter balance 100, got %+v", account)
 	}
 }
 
 func TestReferralService_RepeatInviteRejected(t *testing.T) {
 	svc, _, inviter := seedTestService(t)
 
-	first := &model.User{
-		Name:  "Bob",
-		Email: strPtr("bob@example.com"),
-		Phone: strPtr("13800000002"),
-	}
+	first := &model.User{Name: "Bob", Email: strPtr("bob@example.com"), Phone: strPtr("13800000002")}
 	if _, err := svc.RegisterWithReferral(context.Background(), first, inviter.ReferralCode, "register-bob-001"); err != nil {
 		t.Fatalf("first register failed: %v", err)
 	}
 
-	second := &model.User{
-		Name:  "Bob Again",
-		Email: strPtr("bob@example.com"),
-		Phone: strPtr("13800000002"),
-	}
+	second := &model.User{Name: "Bob Again", Email: strPtr("bob@example.com"), Phone: strPtr("13800000002")}
 	_, err := svc.RegisterWithReferral(context.Background(), second, inviter.ReferralCode, "register-bob-002")
 	if err == nil {
 		t.Fatal("expected duplicate invite to fail")
@@ -738,12 +713,7 @@ func TestReferralService_RepeatInviteRejected(t *testing.T) {
 func TestReferralService_SelfInviteRejected(t *testing.T) {
 	svc, _, inviter := seedTestService(t)
 
-	self := &model.User{
-		Name:  "Alice",
-		Email: strPtr("alice@example.com"),
-		Phone: strPtr("13800000001"),
-	}
-
+	self := &model.User{Name: "Alice", Email: strPtr("alice@example.com"), Phone: strPtr("13800000001")}
 	_, err := svc.RegisterWithReferral(context.Background(), self, inviter.ReferralCode, "register-self-001")
 	if err == nil {
 		t.Fatal("expected self-invite to fail")
@@ -756,12 +726,7 @@ func TestReferralService_SelfInviteRejected(t *testing.T) {
 func TestReferralService_ReferralCodeNotFound(t *testing.T) {
 	svc, _, _ := seedTestService(t)
 
-	invitee := &model.User{
-		Name:  "Bob",
-		Email: strPtr("bob@example.com"),
-		Phone: strPtr("13800000002"),
-	}
-
+	invitee := &model.User{Name: "Bob", Email: strPtr("bob@example.com"), Phone: strPtr("13800000002")}
 	_, err := svc.RegisterWithReferral(context.Background(), invitee, "not-exist-code", "register-bob-404")
 	if err == nil {
 		t.Fatal("expected not found error")
@@ -785,18 +750,9 @@ func TestReferralService_ConcurrentRegister(t *testing.T) {
 
 			email := fmt.Sprintf("user-%02d@example.com", i)
 			phone := fmt.Sprintf("1390000%04d", i)
-			invitee := &model.User{
-				Name:  fmt.Sprintf("User-%02d", i),
-				Email: &email,
-				Phone: &phone,
-			}
+			invitee := &model.User{Name: fmt.Sprintf("User-%02d", i), Email: &email, Phone: &phone}
 
-			_, err := svc.RegisterWithReferral(
-				context.Background(),
-				invitee,
-				inviter.ReferralCode,
-				fmt.Sprintf("register-%02d", i),
-			)
+			_, err := svc.RegisterWithReferral(context.Background(), invitee, inviter.ReferralCode, fmt.Sprintf("register-%02d", i))
 			errCh <- err
 		}(i)
 	}
@@ -824,21 +780,20 @@ func TestReferralService_ConcurrentRegister(t *testing.T) {
 func TestReferralService_RewardDuplicateNotAllowed(t *testing.T) {
 	svc, store, inviter := seedTestService(t)
 
-	invitee := &model.User{
-		Name:  "Bob",
-		Email: strPtr("bob@example.com"),
-		Phone: strPtr("13800000002"),
-	}
+	invitee := &model.User{Name: "Bob", Email: strPtr("bob@example.com"), Phone: strPtr("13800000002")}
 	relation, err := svc.RegisterWithReferral(context.Background(), invitee, inviter.ReferralCode, "register-bob-001")
 	if err != nil {
 		t.Fatalf("register failed: %v", err)
 	}
 
-	bizID := fmt.Sprintf("reward-%d-%d", relation.ID, 100)
-	if err := svc.RewardReferral(context.Background(), relation.ID, bizID, 100, "reward-1"); err != nil {
-		t.Fatalf("first reward failed: %v", err)
+	store.mu.Lock()
+	if len(store.ledgers) != 1 {
+		store.mu.Unlock()
+		t.Fatalf("expected 1 auto ledger, got %d", len(store.ledgers))
 	}
+	store.mu.Unlock()
 
+	bizID := fmt.Sprintf("reward-%d-%d", relation.ID, 100)
 	err = svc.RewardReferral(context.Background(), relation.ID, bizID, 100, "reward-1")
 	if err == nil {
 		t.Fatal("expected duplicate reward to fail")

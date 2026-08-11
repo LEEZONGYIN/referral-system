@@ -49,11 +49,11 @@ func NewReferralService(deps ReferralServiceDeps) *ReferralService {
 		txMgr:                deps.TxMgr,
 		userRepo:             deps.UserRepo,
 		referralRuleRepo:     deps.ReferralRuleRepo,
-		referralRelationRepo:  deps.ReferralRelationRepo,
-		referralEventRepo:     deps.ReferralEventRepo,
-		creditAccountRepo:     deps.CreditAccountRepo,
-		creditLedgerRepo:      deps.CreditLedgerRepo,
-		statsRepo:             deps.StatsRepo,
+		referralRelationRepo: deps.ReferralRelationRepo,
+		referralEventRepo:    deps.ReferralEventRepo,
+		creditAccountRepo:    deps.CreditAccountRepo,
+		creditLedgerRepo:     deps.CreditLedgerRepo,
+		statsRepo:            deps.StatsRepo,
 	}
 }
 
@@ -81,6 +81,9 @@ func (s *ReferralService) RegisterWithReferral(ctx context.Context, invitee *mod
 			}
 			result = relation
 			return ErrRegisterAlreadyProcessed
+		}
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("check registration idempotency: %w", err)
 		}
 
 		inviter, err := s.userRepo.GetByReferralCode(txCtx, referralCode)
@@ -119,7 +122,7 @@ func (s *ReferralService) RegisterWithReferral(ctx context.Context, invitee *mod
 			return fmt.Errorf("create referral relation: %w", err)
 		}
 
-		event := &model.ReferralEvent{
+		registerEvent := &model.ReferralEvent{
 			RelationID:     &relation.ID,
 			InviterUserID:  &inviter.ID,
 			InviteeUserID:  &invitee.ID,
@@ -127,8 +130,16 @@ func (s *ReferralService) RegisterWithReferral(ctx context.Context, invitee *mod
 			IdempotencyKey: idempotencyKey,
 			CreatedAt:      now,
 		}
-		if err := s.referralEventRepo.Create(txCtx, event); err != nil {
+		if err := s.referralEventRepo.Create(txCtx, registerEvent); err != nil {
 			return fmt.Errorf("create referral event: %w", err)
+		}
+
+		if rule != nil && rule.RewardAmount > 0 {
+			rewardBizID := fmt.Sprintf("auto-reward-%d", relation.ID)
+			rewardKey := fmt.Sprintf("auto-reward-%d-%d", relation.ID, rule.RewardAmount)
+			if err := s.applyRewardTx(txCtx, relation, rewardBizID, rule.RewardAmount, rewardKey); err != nil {
+				return err
+			}
 		}
 
 		result = relation
@@ -155,73 +166,83 @@ func (s *ReferralService) RewardReferral(ctx context.Context, relationID int64, 
 	}
 
 	return s.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		existingLedger, err := s.creditLedgerRepo.GetByIdempotencyKey(txCtx, idempotencyKey)
-		if err == nil && existingLedger != nil {
-			return ErrRewardAlreadyProcessed
-		}
-
 		relation, err := s.referralRelationRepo.GetByID(txCtx, relationID)
 		if err != nil {
 			return fmt.Errorf("get relation: %w", err)
 		}
-
-		if relation.Status == model.ReferralRelationRewarded {
-			return ErrRewardAlreadyProcessed
-		}
-
-		if err := s.creditAccountRepo.CreateIfNotExists(txCtx, relation.InviterUserID); err != nil {
-			return fmt.Errorf("ensure credit account: %w", err)
-		}
-
-		account, err := s.creditAccountRepo.GetByUserID(txCtx, relation.InviterUserID)
-		if err != nil {
-			return fmt.Errorf("get credit account: %w", err)
-		}
-
-		ok, err := s.creditAccountRepo.UpdateBalanceWithOptimisticLock(txCtx, relation.InviterUserID, amount, account.Version)
-		if err != nil {
-			return fmt.Errorf("update balance: %w", err)
-		}
-		if !ok {
-			return sql.ErrTxDone
-		}
-
-		now := time.Now()
-		ledger := &model.CreditLedger{
-			UserID:         relation.InviterUserID,
-			BizType:        model.CreditBizTypeReferralReward,
-			BizID:          bizID,
-			Direction:      model.CreditDirectionIn,
-			Amount:         amount,
-			BeforeBalance:  account.Balance,
-			AfterBalance:   account.Balance + amount,
-			IdempotencyKey: idempotencyKey,
-			CreatedAt:      now,
-		}
-		if err := s.creditLedgerRepo.Create(txCtx, ledger); err != nil {
-			return fmt.Errorf("create credit ledger: %w", err)
-		}
-
-		relation.Status = model.ReferralRelationRewarded
-		relation.RewardedAt = &now
-		if err := s.referralRelationRepo.UpdateStatus(txCtx, relation.ID, relation.Status, relation.QualifiedAt, relation.RewardedAt); err != nil {
-			return fmt.Errorf("update relation status: %w", err)
-		}
-
-		event := &model.ReferralEvent{
-			RelationID:     &relation.ID,
-			InviterUserID:  &relation.InviterUserID,
-			InviteeUserID:  &relation.InviteeUserID,
-			EventType:      model.ReferralEventRewarded,
-			IdempotencyKey: idempotencyKey,
-			CreatedAt:      now,
-		}
-		if err := s.referralEventRepo.Create(txCtx, event); err != nil {
-			return fmt.Errorf("create reward event: %w", err)
-		}
-
-		return nil
+		return s.applyRewardTx(txCtx, relation, bizID, amount, idempotencyKey)
 	})
+}
+
+func (s *ReferralService) applyRewardTx(txCtx context.Context, relation *model.ReferralRelation, bizID string, amount int64, idempotencyKey string) error {
+	if relation == nil {
+		return errors.New("relation is nil")
+	}
+
+	existingLedger, err := s.creditLedgerRepo.GetByIdempotencyKey(txCtx, idempotencyKey)
+	if err == nil && existingLedger != nil {
+		return ErrRewardAlreadyProcessed
+	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("check reward idempotency: %w", err)
+	}
+
+	if relation.Status == model.ReferralRelationRewarded {
+		return ErrRewardAlreadyProcessed
+	}
+
+	if err := s.creditAccountRepo.CreateIfNotExists(txCtx, relation.InviterUserID); err != nil {
+		return fmt.Errorf("ensure credit account: %w", err)
+	}
+
+	account, err := s.creditAccountRepo.GetByUserID(txCtx, relation.InviterUserID)
+	if err != nil {
+		return fmt.Errorf("get credit account: %w", err)
+	}
+
+	ok, err := s.creditAccountRepo.UpdateBalanceWithOptimisticLock(txCtx, relation.InviterUserID, amount, account.Version)
+	if err != nil {
+		return fmt.Errorf("update balance: %w", err)
+	}
+	if !ok {
+		return sql.ErrTxDone
+	}
+
+	now := time.Now()
+	ledger := &model.CreditLedger{
+		UserID:         relation.InviterUserID,
+		BizType:        model.CreditBizTypeReferralReward,
+		BizID:          bizID,
+		Direction:      model.CreditDirectionIn,
+		Amount:         amount,
+		BeforeBalance:  account.Balance,
+		AfterBalance:   account.Balance + amount,
+		IdempotencyKey: idempotencyKey,
+		CreatedAt:      now,
+	}
+	if err := s.creditLedgerRepo.Create(txCtx, ledger); err != nil {
+		return fmt.Errorf("create credit ledger: %w", err)
+	}
+
+	relation.Status = model.ReferralRelationRewarded
+	relation.RewardedAt = &now
+	if err := s.referralRelationRepo.UpdateStatus(txCtx, relation.ID, relation.Status, relation.QualifiedAt, relation.RewardedAt); err != nil {
+		return fmt.Errorf("update relation status: %w", err)
+	}
+
+	rewardEvent := &model.ReferralEvent{
+		RelationID:     &relation.ID,
+		InviterUserID:  &relation.InviterUserID,
+		InviteeUserID:  &relation.InviteeUserID,
+		EventType:      model.ReferralEventRewarded,
+		IdempotencyKey: idempotencyKey,
+		CreatedAt:      now,
+	}
+	if err := s.referralEventRepo.Create(txCtx, rewardEvent); err != nil {
+		return fmt.Errorf("create reward event: %w", err)
+	}
+
+	return nil
 }
 
 func (s *ReferralService) findActiveRule(ctx context.Context, now time.Time) (*model.ReferralRule, error) {
