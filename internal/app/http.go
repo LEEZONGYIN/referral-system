@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"strconv"
 	"time"
@@ -25,8 +26,23 @@ func NewHTTPHandler(referralSvc *service.ReferralService) http.Handler {
 	mux.HandleFunc("/api/v1/referrals/dashboard", h.dashboard(referralSvc))
 	mux.HandleFunc("/api/v1/credits/balance", h.balance(referralSvc))
 	mux.HandleFunc("/api/v1/credits/ledger", h.ledger(referralSvc))
+	mux.Handle("/", h.frontend())
 
 	return mux
+}
+
+func (h *HTTPHandler) frontend() http.Handler {
+	const dir = "web"
+	return http.FileServer(http.FS(staticFS{dir: dir}))
+}
+
+type staticFS struct{ dir string }
+
+func (s staticFS) Open(name string) (fs.File, error) {
+	if name == "/" || name == "" {
+		name = "/index.html"
+	}
+	return http.Dir(s.dir).Open(name)
 }
 
 func (h *HTTPHandler) healthz(w http.ResponseWriter, _ *http.Request) {
