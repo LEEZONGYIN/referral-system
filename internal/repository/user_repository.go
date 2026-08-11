@@ -13,4 +13,5 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 	GetByPhone(ctx context.Context, phone string) (*model.User, error)
 	Update(ctx context.Context, user *model.User) error
+	List(ctx context.Context, limit, offset int) ([]*model.User, error)
 }

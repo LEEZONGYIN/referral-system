@@ -5,259 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Referral System Dashboard</title>
   <style>
-    :root {
-      --bg: #07111f;
-      --panel: rgba(15, 23, 42, 0.9);
-      --panel-2: rgba(30, 41, 59, 0.88);
-      --border: rgba(148, 163, 184, 0.18);
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --primary: #38bdf8;
-      --primary-2: #0ea5e9;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --shadow: 0 20px 60px rgba(2, 6, 23, 0.35);
-      --radius: 20px;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(14,165,233,0.15), transparent 30%),
-        radial-gradient(circle at top right, rgba(34,197,94,0.12), transparent 28%),
-        linear-gradient(180deg, #020617 0%, var(--bg) 100%);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    .app {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 32px 20px 56px;
-    }
-
-    .hero {
-      display: grid;
-      grid-template-columns: 1.4fr 0.9fr;
-      gap: 20px;
-      align-items: stretch;
-      margin-bottom: 20px;
-    }
-
-    .hero-card, .panel, .stat, .form-card, .table-card {
-      background: linear-gradient(180deg, var(--panel), rgba(15, 23, 42, 0.75));
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-    }
-
-    .hero-card {
-      padding: 28px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-card::after {
-      content: '';
-      position: absolute;
-      inset: auto -30px -30px auto;
-      width: 180px;
-      height: 180px;
-      background: radial-gradient(circle, rgba(56,189,248,0.28), transparent 70%);
-      filter: blur(8px);
-      pointer-events: none;
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border: 1px solid rgba(56,189,248,0.3);
-      border-radius: 999px;
-      color: #bae6fd;
-      background: rgba(14,165,233,0.08);
-      font-size: 13px;
-      letter-spacing: 0.02em;
-    }
-
-    h1 {
-      margin: 16px 0 12px;
-      font-size: clamp(32px, 4vw, 48px);
-      line-height: 1.05;
-    }
-
-    .desc {
-      color: var(--muted);
-      line-height: 1.7;
-      max-width: 760px;
-      margin: 0;
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    .btn {
-      appearance: none;
-      border: 1px solid transparent;
-      border-radius: 14px;
-      padding: 12px 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
-      color: white;
-      background: linear-gradient(135deg, var(--primary), var(--primary-2));
-      box-shadow: 0 10px 30px rgba(14,165,233,0.25);
-    }
-
-    .btn:hover { transform: translateY(-1px); }
-    .btn.secondary {
-      background: rgba(15, 23, 42, 0.8);
-      border-color: var(--border);
-      color: var(--text);
-      box-shadow: none;
-    }
-
-    .side-card {
-      display: grid;
-      gap: 14px;
-    }
-
-    .stat {
-      padding: 18px;
-    }
-
-    .stat .label { color: var(--muted); font-size: 13px; }
-    .stat .value { font-size: 28px; font-weight: 800; margin-top: 8px; }
-    .stat .hint { color: var(--muted); font-size: 13px; margin-top: 4px; }
-
-    .toolbar {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      margin: 18px 0;
-    }
-
-    .form-card, .table-card {
-      padding: 22px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-      margin-top: 18px;
-    }
-
-    .panel h2, .form-card h2, .table-card h2 {
-      margin: 0 0 12px;
-      font-size: 18px;
-    }
-
-    .panel p, .form-card p, .table-card p {
-      margin: 0 0 18px;
-      color: var(--muted);
-      line-height: 1.65;
-    }
-
-    .field {
-      display: grid;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
-    label { font-size: 13px; color: #cbd5e1; }
-    input, textarea {
-      width: 100%;
-      border: 1px solid rgba(148,163,184,0.18);
-      background: rgba(2,6,23,0.45);
-      color: var(--text);
-      border-radius: 14px;
-      padding: 12px 14px;
-      outline: none;
-    }
-
-    input:focus, textarea:focus {
-      border-color: rgba(56,189,248,0.55);
-      box-shadow: 0 0 0 4px rgba(14,165,233,0.12);
-    }
-
-    textarea { min-height: 120px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-
-    .form-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-    }
-
-    .output {
-      margin-top: 16px;
-      padding: 16px;
-      border-radius: 14px;
-      background: rgba(2,6,23,0.6);
-      border: 1px solid rgba(148,163,184,0.14);
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      min-height: 84px;
-      color: #dbeafe;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      overflow: hidden;
-      border-radius: 14px;
-    }
-
-    th, td {
-      padding: 12px 10px;
-      text-align: left;
-      border-bottom: 1px solid rgba(148,163,184,0.12);
-      font-size: 14px;
-    }
-
-    th { color: #cbd5e1; font-weight: 600; background: rgba(15,23,42,0.65); }
-    td { color: var(--text); }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      background: rgba(56,189,248,0.1);
-      color: #7dd3fc;
-      border: 1px solid rgba(56,189,248,0.18);
-    }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .muted { color: var(--muted); }
-
-    @media (max-width: 980px) {
-      .hero, .grid, .toolbar { grid-template-columns: 1fr; }
-      .app { padding: 16px; }
-    }
+    :root { --bg:#07111f; --panel:rgba(15,23,42,.9); --border:rgba(148,163,184,.18); --text:#e2e8f0; --muted:#94a3b8; --primary:#38bdf8; --primary-2:#0ea5e9; --shadow:0 20px 60px rgba(2,6,23,.35); --radius:20px; --success:#22c55e; --warning:#f59e0b; --danger:#ef4444; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at top left, rgba(14,165,233,.15), transparent 30%),radial-gradient(circle at top right, rgba(34,197,94,.12), transparent 28%),linear-gradient(180deg,#020617 0%,var(--bg) 100%);color:var(--text);min-height:100vh}
+    .app{max-width:1400px;margin:0 auto;padding:32px 20px 56px}
+    .hero{display:grid;grid-template-columns:1.4fr .9fr;gap:20px;align-items:stretch;margin-bottom:20px}
+    .hero-card,.stat,.form-card,.table-card{background:linear-gradient(180deg,var(--panel),rgba(15,23,42,.75));border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(14px)}
+    .hero-card{padding:28px;position:relative;overflow:hidden}
+    .hero-card::after{content:'';position:absolute;inset:auto -30px -30px auto;width:180px;height:180px;background:radial-gradient(circle, rgba(56,189,248,.28), transparent 70%);filter:blur(8px);pointer-events:none}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid rgba(56,189,248,.3);border-radius:999px;color:#bae6fd;background:rgba(14,165,233,.08);font-size:13px;letter-spacing:.02em}
+    h1{margin:16px 0 12px;font-size:clamp(32px,4vw,48px);line-height:1.05}
+    .desc{color:var(--muted);line-height:1.7;max-width:760px;margin:0}
+    .hero-actions,.form-actions{display:flex;flex-wrap:wrap;gap:12px}
+    .hero-actions{margin-top:24px}
+    .btn{appearance:none;border:1px solid transparent;border-radius:14px;padding:12px 16px;font-weight:600;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;box-shadow:0 10px 30px rgba(14,165,233,.25)}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.secondary{background:rgba(15,23,42,.8);border-color:var(--border);color:var(--text);box-shadow:none}
+    .side-card{display:grid;gap:14px}
+    .stat{padding:18px}
+    .stat .label{color:var(--muted);font-size:13px}
+    .stat .value{font-size:28px;font-weight:800;margin-top:8px}
+    .stat .hint{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.5}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+    .form-card,.table-card{padding:22px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:12px;background:rgba(56,189,248,.1);color:#7dd3fc;border:1px solid rgba(56,189,248,.18)}
+    .field{display:grid;gap:8px;margin-bottom:14px}
+    label{font-size:13px;color:#cbd5e1}
+    input{width:100%;border:1px solid rgba(148,163,184,.18);background:rgba(2,6,23,.45);color:var(--text);border-radius:14px;padding:12px 14px;outline:none}
+    input:focus{border-color:rgba(56,189,248,.55);box-shadow:0 0 0 4px rgba(14,165,233,.12)}
+    .result-panel{margin-top:16px;border-radius:16px;border:1px solid rgba(148,163,184,.14);background:rgba(2,6,23,.45);overflow:hidden}
+    .result-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(148,163,184,.12);background:rgba(15,23,42,.72)}
+    .result-head h3{margin:0;font-size:15px;font-weight:700}
+    .result-body{padding:16px}
+    .result-note{color:var(--muted);font-size:13px;line-height:1.6}
+    .result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+    .result-kv{border:1px solid rgba(148,163,184,.14);background:rgba(2,6,23,.45);border-radius:14px;padding:12px 14px}
+    .result-kv .k{color:var(--muted);font-size:12px;margin-bottom:6px}
+    .result-kv .v{font-size:15px;font-weight:700;word-break:break-word}
+    .result-list{display:grid;gap:10px}
+    .result-row{display:flex;justify-content:space-between;gap:16px;padding:12px 14px;border:1px solid rgba(148,163,184,.14);background:rgba(2,6,23,.45);border-radius:14px}
+    .result-row .left{display:grid;gap:4px}
+    .result-row .title{font-weight:700}
+    .result-row .sub{color:var(--muted);font-size:13px}
+    .result-row .value{font-weight:700;white-space:nowrap}
+    table{width:100%;border-collapse:collapse;border-radius:14px;overflow:hidden}
+    th,td{padding:12px 10px;text-align:left;border-bottom:1px solid rgba(148,163,184,.12);font-size:14px}
+    th{color:#cbd5e1;font-weight:600;background:rgba(15,23,42,.65)}
+    td{color:var(--text)}
+    .output-empty{color:var(--muted);font-size:13px}
+    .output-error{color:#fecaca;background:rgba(127,29,29,.2);border:1px solid rgba(248,113,113,.22);padding:12px 14px;border-radius:14px}
+    .output-success{color:#dcfce7;background:rgba(20,83,45,.18);border:1px solid rgba(74,222,128,.22);padding:12px 14px;border-radius:14px}
+    .output-warn{color:#fef3c7;background:rgba(120,53,15,.18);border:1px solid rgba(251,191,36,.22);padding:12px 14px;border-radius:14px}
+    .users-table{width:100%;border-collapse:collapse}
+    .users-table th,.users-table td{padding:12px 10px;border-bottom:1px solid rgba(148,163,184,.12)}
+    .users-table th{background:rgba(15,23,42,.65);color:#cbd5e1}
+    .users-table td{color:var(--text)}
+    @media (max-width:980px){.hero,.grid{grid-template-columns:1fr}.app{padding:16px}}
   </style>
 </head>
 <body>
@@ -266,10 +70,7 @@
       <div class="hero-card">
         <div class="eyebrow">Referral System • Admin Console</div>
         <h1>邀请、发奖、账本、看板一体化管理</h1>
-        <p class="desc">
-          这是一个用于演示 Referral 系统主链路的前端页面。你可以在这里完成注册归因、奖励发放，并查看历史、看板、积分余额和流水。
-          页面会直接调用当前后端接口，无需额外前端框架。
-        </p>
+        <p class="desc">这是一个用于演示 Referral 系统主链路的前端页面。你可以在这里完成注册归因、奖励发放，并查看历史、看板、积分余额和流水。页面会直接调用当前后端接口，无需额外前端框架。</p>
         <div class="hero-actions">
           <button class="btn" onclick="runHealthCheck()">检查服务状态</button>
           <button class="btn secondary" onclick="scrollToSection('register-card')">开始注册流程</button>
@@ -283,299 +84,95 @@
           <div class="hint" id="healthHint">点击“检查服务状态”进行验证</div>
         </div>
         <div class="stat">
-          <div class="label">推荐初始化数据</div>
-          <div class="value" style="font-size: 22px;">Alice → Bob</div>
-          <div class="hint">先插入邀请人，再用邀请人邀请码发起注册</div>
+          <div class="label">用户列表</div>
+          <div class="value" style="font-size:22px;">ID / 姓名 / 推荐码</div>
+          <div class="hint">下方会直接展示当前系统中的用户</div>
         </div>
       </div>
     </section>
 
-    <div class="toolbar">
-      <div class="stat">
-        <div class="label">接口风格</div>
-        <div class="value" style="font-size: 22px;">REST</div>
-        <div class="hint">所有请求同源调用，适合本地开发</div>
-      </div>
-      <div class="stat">
-        <div class="label">一致性策略</div>
-        <div class="value" style="font-size: 22px;">Tx + Idempotency</div>
-        <div class="hint">事务、幂等键、唯一索引共同保证正确性</div>
-      </div>
-      <div class="stat">
-        <div class="label">当前主题</div>
-        <div class="value" style="font-size: 22px;">Dark Dashboard</div>
-        <div class="hint">无额外依赖，直接打开即可用</div>
-      </div>
-    </div>
-
     <div class="grid">
       <section class="form-card" id="register-card">
-        <div class="section-title">
-          <h2>注册并归因</h2>
-          <span class="badge">POST /api/v1/referrals/register</span>
-        </div>
+        <div class="section-title"><h2>注册并归因</h2><span class="badge">POST /api/v1/referrals/register</span></div>
         <p>填写被邀请人信息和邀请码，系统会自动创建用户与邀请关系。</p>
-        <div class="field">
-          <label>姓名</label>
-          <input id="regName" value="Bob" />
+        <div class="field"><label>姓名</label><input id="regName" value="Bob" /></div>
+        <div class="field"><label>邮箱</label><input id="regEmail" value="bob@example.com" /></div>
+        <div class="field"><label>手机号</label><input id="regPhone" value="13800000002" /></div>
+        <div class="field"><label>邀请码</label><input id="regCode" value="ABC123" /></div>
+        <div class="form-actions"><button class="btn" onclick="registerInvitee()">提交注册</button><button class="btn secondary" onclick="fillDemoRegister()">填充示例</button></div>
+        <div class="result-panel" id="registerOutputPanel">
+          <div class="result-head"><h3>注册结果</h3><span class="badge">等待操作</span></div>
+          <div class="result-body"><div class="output-empty">等待操作...</div></div>
         </div>
-        <div class="field">
-          <label>邮箱</label>
-          <input id="regEmail" value="bob@example.com" />
-        </div>
-        <div class="field">
-          <label>手机号</label>
-          <input id="regPhone" value="13800000002" />
-        </div>
-        <div class="field">
-          <label>邀请码</label>
-          <input id="regCode" value="ABC123" />
-        </div>
-        <div class="field">
-          <label>幂等键</label>
-          <input id="regIdem" value="register-bob-001" />
-        </div>
-        <div class="form-actions">
-          <button class="btn" onclick="registerInvitee()">提交注册</button>
-          <button class="btn secondary" onclick="fillDemoRegister()">填充示例</button>
-        </div>
-        <div class="output" id="registerOutput">等待操作...</div>
       </section>
 
       <section class="form-card">
-        <div class="section-title">
-          <h2>奖励发放</h2>
-          <span class="badge">POST /api/v1/referrals/reward</span>
-        </div>
+        <div class="section-title"><h2>奖励发放</h2><span class="badge">POST /api/v1/referrals/reward</span></div>
         <p>根据邀请关系 ID 为邀请人发放积分奖励。</p>
-        <div class="field">
-          <label>relation_id</label>
-          <input id="rewardRelationId" value="1" />
+        <div class="field"><label>relation_id</label><input id="rewardRelationId" value="1" /></div>
+        <div class="field"><label>amount</label><input id="rewardAmount" value="100" /></div>
+        <div class="form-actions"><button class="btn" onclick="rewardInvite()">提交奖励</button><button class="btn secondary" onclick="fillDemoReward()">填充示例</button></div>
+        <div class="result-panel" id="rewardOutputPanel">
+          <div class="result-head"><h3>奖励结果</h3><span class="badge">等待操作</span></div>
+          <div class="result-body"><div class="output-empty">等待操作...</div></div>
         </div>
-        <div class="field">
-          <label>biz_id</label>
-          <input id="rewardBizId" value="reg-bob-001" />
-        </div>
-        <div class="field">
-          <label>amount</label>
-          <input id="rewardAmount" value="100" />
-        </div>
-        <div class="field">
-          <label>幂等键</label>
-          <input id="rewardIdem" value="reward-rel-1" />
-        </div>
-        <div class="form-actions">
-          <button class="btn" onclick="rewardInvite()">提交奖励</button>
-          <button class="btn secondary" onclick="fillDemoReward()">填充示例</button>
-        </div>
-        <div class="output" id="rewardOutput">等待操作...</div>
       </section>
     </div>
 
     <div class="grid" id="query-grid">
       <section class="table-card">
-        <div class="section-title">
-          <h2>查询面板</h2>
-          <span class="badge">GET /history /dashboard /balance /ledger</span>
-        </div>
-        <p>使用同一个邀请人 ID 进行历史、看板、余额和流水查询。</p>
-        <div class="field">
-          <label>user_id</label>
-          <input id="queryUserId" value="1" />
-        </div>
+        <div class="section-title"><h2>查询面板</h2><span class="badge">GET /history /dashboard /balance /ledger /users</span></div>
+        <p>使用同一个邀请人 ID 进行历史、看板、余额、流水和用户列表查询。</p>
+        <div class="field"><label>user_id</label><input id="queryUserId" value="1" /></div>
         <div class="form-actions">
           <button class="btn" onclick="loadHistory()">查询历史</button>
           <button class="btn secondary" onclick="loadDashboard()">查询看板</button>
           <button class="btn secondary" onclick="loadBalance()">查询余额</button>
           <button class="btn secondary" onclick="loadLedger()">查询流水</button>
+          <button class="btn secondary" onclick="loadUsers()">查看用户列表</button>
         </div>
       </section>
 
       <section class="table-card">
-        <div class="section-title">
-          <h2>响应结果</h2>
-          <span class="badge">Live Output</span>
-        </div>
+        <div class="section-title"><h2>响应结果</h2><span class="badge">Live Output</span></div>
         <p>点击上方按钮后，结果会直接渲染在这里。</p>
-        <div class="output" id="queryOutput">等待查询...</div>
+        <div class="result-panel" id="queryOutputPanel">
+          <div class="result-head"><h3>结果详情</h3><span class="badge">等待查询</span></div>
+          <div class="result-body"><div class="output-empty">等待查询...</div></div>
+        </div>
       </section>
     </div>
 
-    <section class="table-card" style="margin-top: 18px;">
-      <div class="section-title">
-        <h2>快速结果预览</h2>
-        <span class="badge">History Preview</span>
+    <section class="table-card" style="margin-top:18px;">
+      <div class="section-title"><h2>用户列表</h2><span class="badge">ID / Name / Referral Code</span></div>
+      <p>下面会展示当前系统中的用户列表，方便你直接查看邀请人和被邀请人的推荐码。</p>
+      <div class="result-panel" id="usersOutputPanel">
+        <div class="result-head"><h3>用户列表</h3><span class="badge">等待加载</span></div>
+        <div class="result-body"><div class="output-empty">等待加载...</div></div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>模块</th>
-            <th>接口</th>
-            <th>说明</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>注册归因</td>
-            <td>/api/v1/referrals/register</td>
-            <td>创建被邀请人和邀请关系</td>
-          </tr>
-          <tr>
-            <td>奖励发放</td>
-            <td>/api/v1/referrals/reward</td>
-            <td>给邀请人增加积分并写入账本</td>
-          </tr>
-          <tr>
-            <td>历史查询</td>
-            <td>/api/v1/referrals/history</td>
-            <td>查看邀请关系与状态</td>
-          </tr>
-          <tr>
-            <td>看板查询</td>
-            <td>/api/v1/referrals/dashboard</td>
-            <td>查看邀请统计汇总</td>
-          </tr>
-        </tbody>
-      </table>
     </section>
   </div>
 
   <script>
-    function scrollToSection(id) {
-      document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function pretty(data) {
-      return JSON.stringify(data, null, 2);
-    }
-
-    function setOutput(id, data) {
-      document.getElementById(id).textContent = typeof data === 'string' ? data : pretty(data);
-    }
-
-    async function requestJSON(url, options) {
-      const res = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-        ...options,
-      });
-      const text = await res.text();
-      let body;
-      try { body = text ? JSON.parse(text) : {}; } catch { body = text; }
-      if (!res.ok) {
-        const err = body && body.error ? body.error : `HTTP ${res.status}`;
-        throw new Error(err);
-      }
-      return body;
-    }
-
-    async function runHealthCheck() {
-      try {
-        const data = await requestJSON('/healthz');
-        document.getElementById('healthValue').textContent = data.status || 'ok';
-        document.getElementById('healthHint').textContent = '服务可用';
-      } catch (e) {
-        document.getElementById('healthValue').textContent = 'Down';
-        document.getElementById('healthHint').textContent = e.message;
-      }
-    }
-
-    function fillDemoRegister() {
-      document.getElementById('regName').value = 'Bob';
-      document.getElementById('regEmail').value = 'bob@example.com';
-      document.getElementById('regPhone').value = '13800000002';
-      document.getElementById('regCode').value = 'ABC123';
-      document.getElementById('regIdem').value = 'register-bob-001';
-    }
-
-    function fillDemoReward() {
-      document.getElementById('rewardRelationId').value = '1';
-      document.getElementById('rewardBizId').value = 'reg-bob-001';
-      document.getElementById('rewardAmount').value = '100';
-      document.getElementById('rewardIdem').value = 'reward-rel-1';
-    }
-
-    async function registerInvitee() {
-      try {
-        const payload = {
-          name: document.getElementById('regName').value,
-          email: document.getElementById('regEmail').value,
-          phone: document.getElementById('regPhone').value,
-          referral_code: document.getElementById('regCode').value,
-          idempotency_key: document.getElementById('regIdem').value,
-        };
-        const data = await requestJSON('/api/v1/referrals/register', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-        setOutput('registerOutput', data);
-        setOutput('queryOutput', '注册成功，可以继续点击“提交奖励”或使用下方查询面板查看数据。');
-        document.getElementById('rewardRelationId').value = data.relation_id;
-        document.getElementById('rewardBizId').value = document.getElementById('regIdem').value;
-      } catch (e) {
-        setOutput('registerOutput', { error: e.message });
-      }
-    }
-
-    async function rewardInvite() {
-      try {
-        const payload = {
-          relation_id: Number(document.getElementById('rewardRelationId').value),
-          biz_id: document.getElementById('rewardBizId').value,
-          amount: Number(document.getElementById('rewardAmount').value),
-          idempotency_key: document.getElementById('rewardIdem').value,
-        };
-        const data = await requestJSON('/api/v1/referrals/reward', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-        setOutput('rewardOutput', data);
-        setOutput('queryOutput', '奖励发放成功，可以继续查看历史、余额和流水。');
-      } catch (e) {
-        setOutput('rewardOutput', { error: e.message });
-      }
-    }
-
-    async function loadHistory() {
-      try {
-        const userId = document.getElementById('queryUserId').value;
-        const data = await requestJSON(`/api/v1/referrals/history?user_id=${encodeURIComponent(userId)}&limit=20&offset=0`);
-        setOutput('queryOutput', data);
-      } catch (e) {
-        setOutput('queryOutput', { error: e.message });
-      }
-    }
-
-    async function loadDashboard() {
-      try {
-        const userId = document.getElementById('queryUserId').value;
-        const data = await requestJSON(`/api/v1/referrals/dashboard?user_id=${encodeURIComponent(userId)}`);
-        setOutput('queryOutput', data);
-      } catch (e) {
-        setOutput('queryOutput', { error: e.message });
-      }
-    }
-
-    async function loadBalance() {
-      try {
-        const userId = document.getElementById('queryUserId').value;
-        const data = await requestJSON(`/api/v1/credits/balance?user_id=${encodeURIComponent(userId)}`);
-        setOutput('queryOutput', data);
-      } catch (e) {
-        setOutput('queryOutput', { error: e.message });
-      }
-    }
-
-    async function loadLedger() {
-      try {
-        const userId = document.getElementById('queryUserId').value;
-        const data = await requestJSON(`/api/v1/credits/ledger?user_id=${encodeURIComponent(userId)}&limit=20&offset=0`);
-        setOutput('queryOutput', data);
-      } catch (e) {
-        setOutput('queryOutput', { error: e.message });
-      }
-    }
-
-    runHealthCheck();
+    function scrollToSection(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'})}
+    function requestJSON(url,options){return fetch(url,{headers:{'Content-Type':'application/json'},...options}).then(async res=>{const text=await res.text();let body;try{body=text?JSON.parse(text):{}}catch{body=text}if(!res.ok){throw new Error(body&&body.error?body.error:`HTTP ${res.status}`)}return body})}
+    function escapeHtml(value){return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;')}
+    function renderPanel(panelId,title,badge,html){const panel=document.getElementById(panelId);panel.innerHTML=`<div class="result-head"><h3>${escapeHtml(title)}</h3><span class="badge">${escapeHtml(badge)}</span></div><div class="result-body">${html}</div>`}
+    function renderMessage(panelId,title,badge,message,kind){const classes=kind==='error'?'output-error':kind==='success'?'output-success':kind==='warn'?'output-warn':'output-empty';renderPanel(panelId,title,badge,`<div class="${classes}">${escapeHtml(message)}</div>`)}
+    function renderKeyValues(panelId,title,badge,items){const html=`<div class="result-grid">${items.map(item=>`<div class="result-kv"><div class="k">${escapeHtml(item.label)}</div><div class="v">${escapeHtml(String(item.value ?? '-'))}</div></div>`).join('')}</div>`;renderPanel(panelId,title,badge,html)}
+    function renderRows(panelId,title,badge,rows){const html=`<div class="result-list">${rows.map(row=>`<div class="result-row"><div class="left"><div class="title">${escapeHtml(row.title)}</div><div class="sub">${escapeHtml(row.sub || '')}</div></div><div class="value">${escapeHtml(String(row.value ?? ''))}</div></div>`).join('')}</div>`;renderPanel(panelId,title,badge,html)}
+    function renderTable(panelId,title,badge,columns,rows,emptyText){if(!rows.length){renderMessage(panelId,title,badge,emptyText||'暂无数据','warn');return}const head=`<tr>${columns.map(c=>`<th>${escapeHtml(c.label)}</th>`).join('')}</tr>`;const body=rows.map(row=>`<tr>${columns.map(c=>`<td>${escapeHtml(String(row[c.key] ?? '-'))}</td>`).join('')}</tr>`).join('');renderPanel(panelId,title,badge,`<table class="users-table"><thead>${head}</thead><tbody>${body}</tbody></table>`)}
+    async function runHealthCheck(){try{const data=await requestJSON('/healthz');document.getElementById('healthValue').textContent=data.status||'ok';document.getElementById('healthHint').textContent='服务可用'}catch(e){document.getElementById('healthValue').textContent='Down';document.getElementById('healthHint').textContent=e.message}}
+    function fillDemoRegister(){document.getElementById('regName').value='Bob';document.getElementById('regEmail').value='bob@example.com';document.getElementById('regPhone').value='13800000002';document.getElementById('regCode').value='ABC123'}
+    function fillDemoReward(){document.getElementById('rewardRelationId').value='1';document.getElementById('rewardAmount').value='100'}
+    async function registerInvitee(){try{const payload={name:document.getElementById('regName').value,email:document.getElementById('regEmail').value,phone:document.getElementById('regPhone').value,referral_code:document.getElementById('regCode').value};const data=await requestJSON('/api/v1/referrals/register',{method:'POST',body:JSON.stringify(payload)});renderKeyValues('registerOutputPanel','注册结果','创建成功',[{label:'relation_id',value:data.relation_id},{label:'invitee_user_id',value:data.invitee_user_id}]);renderMessage('queryOutputPanel','结果详情','注册成功','注册成功，可以继续点击“提交奖励”或使用下方查询面板查看数据。','success');document.getElementById('rewardRelationId').value=data.relation_id;document.getElementById('rewardAmount').value='100';loadUsers()}catch(e){renderMessage('registerOutputPanel','注册结果','发生错误',e.message,'error')}}
+    async function rewardInvite(){try{const payload={relation_id:Number(document.getElementById('rewardRelationId').value),amount:Number(document.getElementById('rewardAmount').value)};const data=await requestJSON('/api/v1/referrals/reward',{method:'POST',body:JSON.stringify(payload)});renderRows('rewardOutputPanel','奖励结果','发放完成',[{title:'状态',sub:'奖励接口返回结果',value:data.status||'ok'}]);renderMessage('queryOutputPanel','结果详情','奖励成功','奖励发放成功，可以继续查看历史、余额和流水。','success')}catch(e){renderMessage('rewardOutputPanel','奖励结果','发生错误',e.message,'error')}}
+    async function loadHistory(){try{const userId=document.getElementById('queryUserId').value;const data=await requestJSON(`/api/v1/referrals/history?user_id=${encodeURIComponent(userId)}&limit=20&offset=0`);const rows=(data.items||[]).map(item=>({title:`关系 #${item.id}`,sub:`邀请人 ${item.inviter_user_id} · 被邀请人 ${item.invitee_user_id}`,value:`状态 ${item.status}`}));renderRows('queryOutputPanel','查询结果','邀请历史',rows.length?rows:[{title:'暂无记录',sub:'当前没有邀请历史',value:''}])}catch(e){renderMessage('queryOutputPanel','查询结果','历史查询失败',e.message,'error')}}
+    async function loadDashboard(){try{const userId=document.getElementById('queryUserId').value;const data=await requestJSON(`/api/v1/referrals/dashboard?user_id=${encodeURIComponent(userId)}`);renderKeyValues('queryOutputPanel','查询结果','邀请看板',[{label:'invite_count',value:data.invite_count},{label:'qualified_count',value:data.qualified_count},{label:'reward_amount_total',value:data.reward_amount_total}])}catch(e){renderMessage('queryOutputPanel','查询结果','看板查询失败',e.message,'error')}}
+    async function loadBalance(){try{const userId=document.getElementById('queryUserId').value;const data=await requestJSON(`/api/v1/credits/balance?user_id=${encodeURIComponent(userId)}`);renderKeyValues('queryOutputPanel','查询结果','积分余额',[{label:'user_id',value:data.user_id},{label:'balance',value:data.balance},{label:'frozen_balance',value:data.frozen_balance},{label:'version',value:data.version}])}catch(e){renderMessage('queryOutputPanel','查询结果','余额查询失败',e.message,'error')}}
+    async function loadLedger(){try{const userId=document.getElementById('queryUserId').value;const data=await requestJSON(`/api/v1/credits/ledger?user_id=${encodeURIComponent(userId)}&limit=20&offset=0`);const rows=(data.items||[]).map(item=>({id:item.id,user_id:item.user_id,biz_type:item.biz_type,biz_id:item.biz_id,amount:item.amount,after_balance:item.after_balance}));renderTable('queryOutputPanel','查询结果','积分流水',[{label:'ID',key:'id'},{label:'用户ID',key:'user_id'},{label:'业务类型',key:'biz_type'},{label:'业务单号',key:'biz_id'},{label:'积分变化',key:'amount'},{label:'变动后余额',key:'after_balance'}],rows,'暂无流水记录')}catch(e){renderMessage('queryOutputPanel','查询结果','流水查询失败',e.message,'error')}}
+    async function loadUsers(){try{const data=await requestJSON('/api/v1/users?limit=50&offset=0');const rows=(data.items||[]).map(item=>({id:item.id,name:item.name,referral_code:item.referral_code}));renderTable('usersOutputPanel','用户列表','当前用户',[{label:'用户ID',key:'id'},{label:'姓名',key:'name'},{label:'推荐码',key:'referral_code'}],rows,'暂无用户') }catch(e){renderMessage('usersOutputPanel','用户列表','加载失败',e.message,'error')}}
+    runHealthCheck();loadUsers();
   </script>
 </body>
 </html>

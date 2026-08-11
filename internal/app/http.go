@@ -1,9 +1,13 @@
 package app
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"io/fs"
+	"errors"
+	"fmt"
 	"net/http"
+	"path"
 	"strconv"
 	"time"
 
@@ -26,23 +30,24 @@ func NewHTTPHandler(referralSvc *service.ReferralService) http.Handler {
 	mux.HandleFunc("/api/v1/referrals/dashboard", h.dashboard(referralSvc))
 	mux.HandleFunc("/api/v1/credits/balance", h.balance(referralSvc))
 	mux.HandleFunc("/api/v1/credits/ledger", h.ledger(referralSvc))
+	mux.HandleFunc("/api/v1/users", h.users(referralSvc))
 	mux.Handle("/", h.frontend())
 
 	return mux
 }
 
 func (h *HTTPHandler) frontend() http.Handler {
-	const dir = "web"
-	return http.FileServer(http.FS(staticFS{dir: dir}))
-}
-
-type staticFS struct{ dir string }
-
-func (s staticFS) Open(name string) (fs.File, error) {
-	if name == "/" || name == "" {
-		name = "/index.html"
-	}
-	return http.Dir(s.dir).Open(name)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.ServeFile(w, r, "web/index.html")
+			return
+		}
+		if path.Clean(r.URL.Path) != r.URL.Path {
+			http.NotFound(w, r)
+			return
+		}
+		http.FileServer(http.Dir("web")).ServeHTTP(w, r)
+	})
 }
 
 func (h *HTTPHandler) healthz(w http.ResponseWriter, _ *http.Request) {
@@ -51,11 +56,10 @@ func (h *HTTPHandler) healthz(w http.ResponseWriter, _ *http.Request) {
 
 func (h *HTTPHandler) register(referralSvc *service.ReferralService) http.HandlerFunc {
 	type request struct {
-		Name           string `json:"name"`
-		Email          string `json:"email"`
-		Phone          string `json:"phone"`
-		ReferralCode   string `json:"referral_code"`
-		IdempotencyKey string `json:"idempotency_key"`
+		Name         string `json:"name"`
+		Email        string `json:"email"`
+		Phone        string `json:"phone"`
+		ReferralCode string `json:"referral_code"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -74,8 +78,13 @@ func (h *HTTPHandler) register(referralSvc *service.ReferralService) http.Handle
 		if req.Phone != "" {
 			invitee.Phone = &req.Phone
 		}
-		relation, err := referralSvc.RegisterWithReferral(r.Context(), invitee, req.ReferralCode, req.IdempotencyKey)
+		idemKey := generateRequestKey("register", req.Name, req.Email, req.Phone, req.ReferralCode)
+		relation, err := referralSvc.RegisterWithReferral(r.Context(), invitee, req.ReferralCode, idemKey)
 		if err != nil {
+			if errors.Is(err, service.ErrRegisterAlreadyProcessed) {
+				writeJSON(w, http.StatusOK, map[string]string{"message": "registration already processed"})
+				return
+			}
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -85,10 +94,8 @@ func (h *HTTPHandler) register(referralSvc *service.ReferralService) http.Handle
 
 func (h *HTTPHandler) reward(referralSvc *service.ReferralService) http.HandlerFunc {
 	type request struct {
-		RelationID     int64  `json:"relation_id"`
-		BizID          string `json:"biz_id"`
-		Amount         int64  `json:"amount"`
-		IdempotencyKey string `json:"idempotency_key"`
+		RelationID int64  `json:"relation_id"`
+		Amount     int64  `json:"amount"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -100,7 +107,13 @@ func (h *HTTPHandler) reward(referralSvc *service.ReferralService) http.HandlerF
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
 			return
 		}
-		if err := referralSvc.RewardReferral(r.Context(), req.RelationID, req.BizID, req.Amount, req.IdempotencyKey); err != nil {
+		bizID := fmt.Sprintf("reward-%d-%d", req.RelationID, req.Amount)
+		idemKey := generateRequestKey("reward", strconv.FormatInt(req.RelationID, 10), bizID, strconv.FormatInt(req.Amount, 10))
+		if err := referralSvc.RewardReferral(r.Context(), req.RelationID, bizID, req.Amount, idemKey); err != nil {
+			if errors.Is(err, service.ErrRewardAlreadyProcessed) {
+				writeJSON(w, http.StatusOK, map[string]string{"message": "reward already processed"})
+				return
+			}
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -200,6 +213,32 @@ func (h *HTTPHandler) ledger(referralSvc *service.ReferralService) http.HandlerF
 	}
 }
 
+func (h *HTTPHandler) users(referralSvc *service.ReferralService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		limit := parseIntQueryDefault(r, "limit", 20)
+		offset := parseIntQueryDefault(r, "offset", 0)
+
+		items, err := referralSvc.ListUsers(r.Context(), limit, offset)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		result := make([]map[string]interface{}, 0, len(items))
+		for _, u := range items {
+			result = append(result, map[string]interface{}{
+				"id":            u.ID,
+				"name":          u.Name,
+				"referral_code": u.ReferralCode,
+			})
+		}
+		writeJSON(w, http.StatusOK, map[string]interface{}{"items": result})
+	}
+}
+
 func parseInt64Query(r *http.Request, key string) (int64, error) {
 	value := r.URL.Query().Get(key)
 	if value == "" {
@@ -224,6 +263,15 @@ func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func generateRequestKey(parts ...string) string {
+	h := sha256.New()
+	for _, part := range parts {
+		_, _ = h.Write([]byte(part))
+		_, _ = h.Write([]byte("|"))
+	}
+	return fmt.Sprintf("req-%s", hex.EncodeToString(h.Sum(nil))[:16])
 }
 
 func newServer(handler http.Handler) *http.Server {

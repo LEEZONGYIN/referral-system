@@ -2,13 +2,20 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
 
 	"referral-system/internal/model"
 	"referral-system/internal/repository"
+)
+
+var (
+	ErrRewardAlreadyProcessed   = errors.New("reward already processed")
+	ErrRegisterAlreadyProcessed = errors.New("register already processed")
 )
 
 type TransactionManager interface {
@@ -73,12 +80,16 @@ func (s *ReferralService) RegisterWithReferral(ctx context.Context, invitee *mod
 				return fmt.Errorf("load existing relation: %w", err)
 			}
 			result = relation
-			return nil
+			return ErrRegisterAlreadyProcessed
 		}
 
 		inviter, err := s.userRepo.GetByReferralCode(txCtx, referralCode)
 		if err != nil {
 			return fmt.Errorf("find inviter: %w", err)
+		}
+
+		if invitee.ReferralCode == "" {
+			invitee.ReferralCode = generateReferralCode()
 		}
 
 		now := time.Now()
@@ -123,7 +134,7 @@ func (s *ReferralService) RegisterWithReferral(ctx context.Context, invitee *mod
 		result = relation
 		return nil
 	})
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrRegisterAlreadyProcessed) {
 		return nil, err
 	}
 	return result, nil
@@ -146,7 +157,7 @@ func (s *ReferralService) RewardReferral(ctx context.Context, relationID int64, 
 	return s.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		existingLedger, err := s.creditLedgerRepo.GetByIdempotencyKey(txCtx, idempotencyKey)
 		if err == nil && existingLedger != nil {
-			return nil
+			return ErrRewardAlreadyProcessed
 		}
 
 		relation, err := s.referralRelationRepo.GetByID(txCtx, relationID)
@@ -155,7 +166,7 @@ func (s *ReferralService) RewardReferral(ctx context.Context, relationID int64, 
 		}
 
 		if relation.Status == model.ReferralRelationRewarded {
-			return nil
+			return ErrRewardAlreadyProcessed
 		}
 
 		if err := s.creditAccountRepo.CreateIfNotExists(txCtx, relation.InviterUserID); err != nil {
@@ -275,4 +286,19 @@ func (s *ReferralService) GetCreditLedger(ctx context.Context, userID int64, lim
 		return nil, errors.New("credit ledger repository is required")
 	}
 	return s.creditLedgerRepo.ListByUserID(ctx, userID, limit, offset)
+}
+
+func (s *ReferralService) ListUsers(ctx context.Context, limit, offset int) ([]*model.User, error) {
+	if s.userRepo == nil {
+		return nil, errors.New("user repository is required")
+	}
+	return s.userRepo.List(ctx, limit, offset)
+}
+
+func generateReferralCode() string {
+	buf := make([]byte, 4)
+	if _, err := rand.Read(buf); err != nil {
+		return fmt.Sprintf("ref-%d", time.Now().UnixNano())
+	}
+	return "ref-" + hex.EncodeToString(buf)
 }

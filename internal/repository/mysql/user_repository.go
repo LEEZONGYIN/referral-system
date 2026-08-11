@@ -111,6 +111,42 @@ WHERE id = ?`
 	return nil
 }
 
+func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*model.User, error) {
+	const query = `
+SELECT id, name, email, phone, referral_code, status, created_at, updated_at
+FROM users
+ORDER BY id DESC
+LIMIT ? OFFSET ?`
+
+	rows, err := connFromContext(ctx, r.db).QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+	defer rows.Close()
+
+	var items []*model.User
+	for rows.Next() {
+		var user model.User
+		if err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&user.Email,
+			&user.Phone,
+			&user.ReferralCode,
+			&user.Status,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan user: %w", err)
+		}
+		items = append(items, &user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate users: %w", err)
+	}
+	return items, nil
+}
+
 func scanUser(row *sql.Row) (*model.User, error) {
 	var user model.User
 	if err := row.Scan(
